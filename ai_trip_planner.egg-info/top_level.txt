@@ -3,5 +3,5 @@ config
 exception
 logger
 prompt_library
-tool
+tools
 utils

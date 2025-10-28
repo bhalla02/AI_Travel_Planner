@@ -1,0 +1,2 @@
+ipykernel>=6.29.5
+langchain-google-community[places]>=2.0.7
