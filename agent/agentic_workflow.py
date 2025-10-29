@@ -33,25 +33,50 @@ class GraphBuilder():
     
     
     def agent_function(self, state: MessagesState):
-        """Main agent function that processes the user query and formats the response"""
+        """Main agent function that processes the user query and returns a properly shaped message.
+
+        LangChain expects messages to be dicts with at least 'role' and 'content' keys. Return
+        a list with a single message dict so downstream code (and the frontend) won't see
+        message coercion errors.
+        """
         user_question = state["messages"]
-        
-        # Add context about formatting to the system prompt
+
+        # Compose input with system prompt + user messages
         input_question = [self.system_prompt] + user_question
-        
-        # Get the raw response from the LLM
+
+        # Invoke the LLM (may produce tool calls internally)
         response = self.llm_with_tools.invoke(input_question)
-        
-        # If the response contains tool calls, ensure they're processed and hidden
-        if isinstance(response.content, str):
-            # Clean up any visible tool calls in the response
-            content = response.content
-            if "Get current weather for a city" in content or "Search transportation of a place" in content:
-                return {"messages": [{"content": "I'm gathering travel information. Please wait..."}]}
-            return {"messages": [response]}
+
+        # Normalize response into a dict with 'role' and 'content'
+        message_dict = None
+
+        # If response is an object with attributes 'role' and 'content'
+        try:
+            resp_role = getattr(response, "role", None)
+            resp_content = getattr(response, "content", None)
+        except Exception:
+            resp_role = None
+            resp_content = None
+
+        if resp_content is not None:
+            # response.content exists
+            role = resp_role if resp_role else "assistant"
+            content = resp_content
+            message_dict = {"role": role, "content": content}
         else:
-            # If we get a different type of response, convert it to a proper message
-            return {"messages": [{"content": str(response)}]}
+            # Fallback: coerce the whole response to string
+            message_dict = {"role": "assistant", "content": str(response)}
+
+        # Ensure we never return raw tool-call instructions — the system prompt should
+        # have instructed the model to process tools, but if the content still contains
+        # obvious tool call text, we can mask it with an informative line while allowing
+        # the agent to continue processing in subsequent runs.
+        content_lower = (message_dict.get("content") or "").lower()
+        if any(p in content_lower for p in ["get current weather", "search transportation", "search attractions", "search restaurants"]):
+            # provide a friendly intermediate message but keep proper shape
+            message_dict = {"role": "assistant", "content": "Gathering live data to build your travel plan — please wait while I fetch details."}
+
+        return {"messages": [message_dict]}
     def build_graph(self):
         graph_builder=StateGraph(MessagesState)
         graph_builder.add_node("agent", self.agent_function)
