@@ -32,12 +32,26 @@ class GraphBuilder():
         self.system_prompt = SYSTEM_PROMPT
     
     
-    def agent_function(self,state: MessagesState):
-        """Main agent function"""
+    def agent_function(self, state: MessagesState):
+        """Main agent function that processes the user query and formats the response"""
         user_question = state["messages"]
+        
+        # Add context about formatting to the system prompt
         input_question = [self.system_prompt] + user_question
+        
+        # Get the raw response from the LLM
         response = self.llm_with_tools.invoke(input_question)
-        return {"messages": [response]}
+        
+        # If the response contains tool calls, ensure they're processed and hidden
+        if isinstance(response.content, str):
+            # Clean up any visible tool calls in the response
+            content = response.content
+            if "Get current weather for a city" in content or "Search transportation of a place" in content:
+                return {"messages": [{"content": "I'm gathering travel information. Please wait..."}]}
+            return {"messages": [response]}
+        else:
+            # If we get a different type of response, convert it to a proper message
+            return {"messages": [{"content": str(response)}]}
     def build_graph(self):
         graph_builder=StateGraph(MessagesState)
         graph_builder.add_node("agent", self.agent_function)
