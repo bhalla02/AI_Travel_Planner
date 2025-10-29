@@ -16,6 +16,17 @@ st.set_page_config(
 
 st.title("🌍 Travel Planner Agentic Application")
 
+user_input = st.text_input("Where do you want to go?")
+if st.button("Plan my trip"):
+    try:
+        res = requests.post(f"{BASE_URL}/query", json={"question": user_input})
+        if res.status_code == 200:
+            st.write(res.json().get("answer", "No response"))
+        else:
+            st.error(f"Error: {res.status_code}")
+    except Exception as e:
+        st.error(f"Backend unreachable: {e}")
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []

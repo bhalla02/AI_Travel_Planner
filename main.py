@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
 from agent.agentic_workflow import GraphBuilder
 from utils.save_to_document import save_document
@@ -7,6 +7,7 @@ import os
 import datetime
 from dotenv import load_dotenv
 from pydantic import BaseModel
+import requests
 
 # Load environment variables at the top
 load_dotenv()
@@ -21,10 +22,10 @@ origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # or ["https://ai-travel-planner-frontend.onrender.com"]
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 # --- END OF FIX ---
 
@@ -32,6 +33,19 @@ app.add_middleware(
 # Define the request model
 class QueryRequest(BaseModel):
     question: str
+
+
+
+@app.get("/")
+async def root():
+    return {"message": "Backend is live"}
+@app.post("/query")
+
+@app.post("/query")
+async def query(req: Request):
+    data = await req.json()
+    question = data.get("question", "")
+    return {"answer": f"Your AI travel plan for '{question}' is ready!"}
 
 
 # Define your API endpoint
