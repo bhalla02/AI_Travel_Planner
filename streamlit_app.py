@@ -14,18 +14,34 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("🌍 Travel Planner Agentic Application")
+st.markdown(
+    """
+    <style>
+    .hero {
+        padding: 20px 0 10px 0;
+        text-align: left;
+    }
+    .hero h1 { font-size:48px; margin:0; }
+    .hero p { font-size:18px; color:#AAB0B6; margin-top:6px }
+    .card {
+        background-color: #0f1720;
+        padding: 18px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(2,6,23,0.6);
+        color: #e6eef8;
+    }
+    .center { display:flex; justify-content:center }
+    </style>
+    <div class="hero">
+      <h1>🌍 Travel Planner Agentic Application</h1>
+      <p>Tell me where you want to go and I'll generate a full travel plan (itinerary, places, costs, and tips).</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-user_input = st.text_input("Where do you want to go?")
-if st.button("Plan my trip"):
-    try:
-        res = requests.post(f"{BASE_URL}/query", json={"question": user_input})
-        if res.status_code == 200:
-            st.write(res.json().get("answer", "No response"))
-        else:
-            st.error(f"Error: {res.status_code}")
-    except Exception as e:
-        st.error(f"Backend unreachable: {e}")
+# We remove the initial quick-search button and keep a single polished form below.
+# The main interactive input is a centered form that submits to the backend.
 
 # Initialize chat history
 if "messages" not in st.session_state:
